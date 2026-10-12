@@ -96,6 +96,10 @@ OpenList-Encrypt/
 ├── android/                     # Android 原生代码
 └── ios/                         # iOS 原生代码
 ```
+## 下载地址
+
+https://github.com/laoguiuncle/OpenList-Encrypt-laogui/releases
+
 
 ## 使用说明
 
