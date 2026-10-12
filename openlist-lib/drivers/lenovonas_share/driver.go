@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	stdpath "path"
 	"strings"
 	"time"
 
@@ -33,7 +32,6 @@ func (d *LenovoNasShare) GetAddition() driver.Additional {
 }
 
 func (d *LenovoNasShare) Init(ctx context.Context) error {
-	d.ShareId = stdpath.Base(d.ShareId)
 	if err := d.getStoken(); err != nil {
 		return err
 	}
@@ -99,6 +97,9 @@ func (d *LenovoNasShare) getStoken() error { // 获取stoken
 	if d.Host == "" {
 		d.Host = "https://siot-share.lenovo.com.cn"
 	}
+
+	parts := strings.Split(d.ShareId, "/")
+	d.ShareId = parts[len(parts)-1]
 
 	query := map[string]string{
 		"code":     d.ShareId,

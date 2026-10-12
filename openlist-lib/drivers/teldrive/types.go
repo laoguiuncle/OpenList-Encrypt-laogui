@@ -52,7 +52,7 @@ type chunkTask struct {
 	fileName  string
 	chunkSize int64
 	reader    io.ReadSeeker
-	ss        stream.StreamSectionReader
+	ss        stream.StreamSectionReaderIF
 }
 
 type CopyManager struct {

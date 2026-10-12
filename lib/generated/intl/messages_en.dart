@@ -146,6 +146,12 @@ class MessageLookup extends MessageLookupByLibrary {
     "autoStartWebPageDesc": MessageLookupByLibrary.simpleMessage(
       "Default page when opening main interface",
     ),
+    "encryptPageAsHome": MessageLookupByLibrary.simpleMessage(
+      "Set encrypted page as startup page",
+    ),
+    "encryptPageAsHomeDesc": MessageLookupByLibrary.simpleMessage(
+      "On: 5344, Off: 5244",
+    ),
     "backupRestored": MessageLookupByLibrary.simpleMessage(
       "Backup restored successfully",
     ),
@@ -334,6 +340,10 @@ class MessageLookup extends MessageLookupByLibrary {
       "Edit OpenList Config",
     ),
     "english": MessageLookupByLibrary.simpleMessage("English"),
+    "exportLogs": MessageLookupByLibrary.simpleMessage("Export Logs"),
+    "exportLogsDesc": MessageLookupByLibrary.simpleMessage(
+      "Export all logs to file",
+    ),
     "failed": MessageLookupByLibrary.simpleMessage("Failed"),
     "fileDeleted": MessageLookupByLibrary.simpleMessage("File deleted"),
     "fileDeletedLog": m20,
@@ -414,6 +424,12 @@ class MessageLookup extends MessageLookupByLibrary {
       "Failed to load download files",
     ),
     "loadFailed": m27,
+    "logsExportFailed": MessageLookupByLibrary.simpleMessage(
+      "Failed to export logs",
+    ),
+    "logsExportSuccess": MessageLookupByLibrary.simpleMessage(
+      "Logs exported successfully",
+    ),
     "modifiedTime": MessageLookupByLibrary.simpleMessage("Modified time"),
     "modifyAdminPassword": MessageLookupByLibrary.simpleMessage(
       "Modify Admin Password",
@@ -444,6 +460,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "noCompletedDownloads": MessageLookupByLibrary.simpleMessage(
       "No completed downloads",
     ),
+    "noLogsToExport": MessageLookupByLibrary.simpleMessage("No logs to export"),
     "noPermissionToInstallApk": MessageLookupByLibrary.simpleMessage(
       "No permission to install APK file, please enable install permission in settings",
     ),
@@ -566,6 +583,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "tryToOpenFile": m45,
     "uiSettings": MessageLookupByLibrary.simpleMessage("UI"),
+    "updateFailed": MessageLookupByLibrary.simpleMessage("Update check failed"),
     "userCancelledDownload": MessageLookupByLibrary.simpleMessage(
       "User cancelled download",
     ),

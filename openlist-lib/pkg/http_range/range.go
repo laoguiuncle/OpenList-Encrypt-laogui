@@ -43,16 +43,16 @@ func ParseRange(s string, size int64) ([]Range, error) { // nolint:gocognit
 	}
 	var ranges []Range
 	noOverlap := false
-	for ra := range strings.SplitSeq(s[len(b):], ",") {
+	for _, ra := range strings.Split(s[len(b):], ",") {
 		ra = textproto.TrimString(ra)
 		if ra == "" {
 			continue
 		}
-		before, after, ok := strings.Cut(ra, "-")
-		if !ok {
+		i := strings.Index(ra, "-")
+		if i < 0 {
 			return nil, ErrInvalid
 		}
-		start, end := textproto.TrimString(before), textproto.TrimString(after)
+		start, end := textproto.TrimString(ra[:i]), textproto.TrimString(ra[i+1:])
 		var r Range
 		if start == "" {
 			// If no start is specified, end specifies the

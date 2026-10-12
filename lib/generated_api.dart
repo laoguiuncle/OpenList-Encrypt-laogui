@@ -1225,6 +1225,59 @@ class EncryptProxy {
     }
   }
 
+  /// 导出原始加密配置（含密码，即磁盘 encrypt_config.json 内容）
+  Future<String> exportEncryptConfigRaw() async {
+    const String __pigeon_channelName =
+        'dev.flutter.pigeon.openlist_mobile.EncryptProxy.exportEncryptConfigRaw';
+    final BasicMessageChannel<Object?> __pigeon_channel = BasicMessageChannel<Object?>(
+      __pigeon_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: __pigeon_binaryMessenger,
+    );
+    final List<Object?>? __pigeon_replyList =
+        await __pigeon_channel.send(null) as List<Object?>?;
+    if (__pigeon_replyList == null) {
+      throw _createConnectionError(__pigeon_channelName);
+    } else if (__pigeon_replyList.length > 1) {
+      throw PlatformException(
+        code: __pigeon_replyList[0]! as String,
+        message: __pigeon_replyList[1] as String?,
+        details: __pigeon_replyList[2],
+      );
+    } else if (__pigeon_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (__pigeon_replyList[0] as String?)!;
+    }
+  }
+
+  /// 导入原始加密配置（写回 encrypt_config.json 并应用）
+  Future<void> importEncryptConfigRaw(String configJson) async {
+    const String __pigeon_channelName =
+        'dev.flutter.pigeon.openlist_mobile.EncryptProxy.importEncryptConfigRaw';
+    final BasicMessageChannel<Object?> __pigeon_channel = BasicMessageChannel<Object?>(
+      __pigeon_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: __pigeon_binaryMessenger,
+    );
+    final List<Object?>? __pigeon_replyList =
+        await __pigeon_channel.send(<Object?>[configJson]) as List<Object?>?;
+    if (__pigeon_replyList == null) {
+      throw _createConnectionError(__pigeon_channelName);
+    } else if (__pigeon_replyList.length > 1) {
+      throw PlatformException(
+        code: __pigeon_replyList[0]! as String,
+        message: __pigeon_replyList[1] as String?,
+        details: __pigeon_replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
   /// 设置管理密码
   Future<void> setEncryptAdminPassword(String password) async {
     const String __pigeon_channelName = 'dev.flutter.pigeon.openlist_mobile.EncryptProxy.setEncryptAdminPassword';

@@ -7,26 +7,24 @@ import (
 
 // File is basic file level accessing interface
 type File interface {
+	io.Reader
 	io.ReaderAt
-	io.ReadSeeker
-}
-type FileWriter interface {
-	io.WriterAt
-	io.WriteSeeker
+	io.Seeker
 }
 type FileCloser struct {
 	File
 	io.Closer
 }
 
-func (f *FileCloser) Close() (err error) {
+func (f *FileCloser) Close() error {
+	var errs []error
 	if clr, ok := f.File.(io.Closer); ok {
-		err = clr.Close()
+		errs = append(errs, clr.Close())
 	}
 	if f.Closer != nil {
-		return errors.Join(err, f.Closer.Close())
+		errs = append(errs, f.Closer.Close())
 	}
-	return
+	return errors.Join(errs...)
 }
 
 // FileRangeReader 是对 RangeReaderIF 的轻量包装，表明由 RangeReaderIF.RangeRead

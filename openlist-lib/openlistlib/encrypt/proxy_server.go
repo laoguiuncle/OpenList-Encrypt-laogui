@@ -75,6 +75,11 @@ type ProxyServer struct {
 	streamHTTPStats     upstreamHTTPStats
 	playFirstCount      uint64
 	strategySelector    *StrategySelector
+
+	// localStreams：上游不支持 Range 时，整文件下载到本地的缓存（按文件直链 key），
+	// 供拖动时按偏移 Seek 解密返回，避免每次拖动都从头重下整段前缀导致播放器反复重连。
+	localStreamMu sync.Mutex
+	localStreams  map[string]*localStreamEntry
 }
 
 func (p *ProxyServer) ensureRuntimeCaches() {

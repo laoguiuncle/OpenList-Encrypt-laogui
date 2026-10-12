@@ -364,18 +364,14 @@ func GetPasswdOutward(password string, encType EncryptionType) string {
 	case EncTypeRC4, "rc4":
 		salt = "RC4"
 	case EncTypeChaCha20, "chacha":
-		salt = "ChaCha20"
+		salt = "CHACHA20"
 	default:
 		// Unknown type, assume password is raw? Or MIX default?
 		salt = "MIX"
 	}
 
 	if len(password) != 32 {
-		keyLen := 16
-		if encType == EncTypeChaCha20 || string(encType) == "chacha" {
-			keyLen = 32
-		}
-		dk := pbkdf2.Key([]byte(password), []byte(salt), 1000, keyLen, sha256.New)
+		dk := pbkdf2.Key([]byte(password), []byte(salt), 1000, 16, sha256.New)
 		passwdOutward = hex.EncodeToString(dk)
 	} else {
 		passwdOutward = password

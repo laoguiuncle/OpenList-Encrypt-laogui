@@ -1,0 +1,14 @@
+OpenList Encrypt Android 源码快照
+日期：2026-10-03
+备注：大文件上传完美 ✅
+
+本次修复：5344 加密代理上传失败（WebDAV 客户端 + 网页端均秒失败，进度条不走；5244 直连正常）
+- 根因：proxy.go 的 ProxyServer 结构体字面量漏写 `uploadClient: uploadClient,` → uploadClient 为 nil
+  → 所有 5344 PUT/POST 上传 client.Do() 直接 nil panic → Go http.Server 关连接
+  → 客户端看到 Broken pipe / Connection reset。
+- 修复：补回 `uploadClient: uploadClient,`（proxy.go ~1613），并加两处防御性 Content-Length 注入。
+- 验证：回归测试 TestWebDAVUploadSendsContentLength PASS；libgojni.so CRC=d3af347a（旧 5d888a63）。
+
+产物 APK：build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+  (libgojni.so=d3af347a / libapp.so=7d4c3353 / libflutter.so=f2e7d433 不变 ⇒ Java/Dart 零改动)
+干净编译树（可编 AAR，无陈旧拆分文件）：G://laogui//aar-build//openlist-lib/n

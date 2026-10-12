@@ -82,3 +82,17 @@ encrypt_config*.json
 *token*.yaml
 *token*.yml
 *token*.env
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+key.properties
+
+# Local AAR build artifacts & backups (mis-extension, not real source)
+*.aar.bak*
+*.aar.old*
+*.aar.*
+# Flutter tool state (generated, not source)
+.flutter
+.flutter_tool_state

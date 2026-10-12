@@ -34,9 +34,10 @@ import (
  */
 // if there are no name, use the last segment of url as name
 func BuildTree(text string, headSize bool) (*Node, error) {
+	lines := strings.Split(text, "\n")
 	var root = &Node{Level: -1, Name: "root"}
 	stack := []*Node{root}
-	for line := range strings.SplitSeq(text, "\n") {
+	for _, line := range lines {
 		// calculate indent
 		indent := 0
 		for i := 0; i < len(line); i++ {
@@ -152,7 +153,9 @@ func splitPath(path string) []string {
 	if path == "/" {
 		return []string{"root"}
 	}
-	path = strings.TrimSuffix(path, "/")
+	if strings.HasSuffix(path, "/") {
+		path = path[:len(path)-1]
+	}
 	parts := strings.Split(path, "/")
 	parts[0] = "root"
 	return parts

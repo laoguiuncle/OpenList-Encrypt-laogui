@@ -18,6 +18,8 @@ import com.openlist.mobile.model.openlist.Logger
 import com.openlist.pigeon.GeneratedApi
 import com.openlist.pigeon.GeneratedApi.VoidResult
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugins.GeneratedPluginRegistrant
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +39,13 @@ class MainActivity : FlutterActivity() {
     private var mEvent: GeneratedApi.Event? = null
     private var mLoggerListener: Logger.Listener? = null
 
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+        // 在框架回调里注册 Pigeon 通道：此时 FlutterEngine 已 attach、Dart 尚未启动，
+        // 是最标准的注册时机，可避免仅在 onCreate 注册时 handler 未真正挂到活动 messenger 的问题。
+        registerPigeonChannels(flutterEngine.dartExecutor.binaryMessenger)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -47,10 +56,7 @@ class MainActivity : FlutterActivity() {
         GeneratedPluginRegistrant.registerWith(this.flutterEngine!!)
 
         val binaryMessage = flutterEngine!!.dartExecutor.binaryMessenger
-        GeneratedApi.AppConfig.setUp(binaryMessage, AppConfigBridge)
-        GeneratedApi.Android.setUp(binaryMessage, AndroidBridge(this))
-        GeneratedApi.NativeCommon.setUp(binaryMessage, CommonBridge(this))
-        GeneratedApi.EncryptProxy.setUp(binaryMessage, EncryptProxyBridge(this))
+        registerPigeonChannels(binaryMessage)
         mEvent = GeneratedApi.Event(binaryMessage)
 
         // 设置服务桥接
@@ -73,6 +79,19 @@ class MainActivity : FlutterActivity() {
             }
         }
         Logger.addListener(mLoggerListener!!)
+    }
+
+    /**
+     * 注册全部 Pigeon 通道到给定 BinaryMessenger。
+     * 同时在 configureFlutterEngine 与 onCreate 调用，确保 R8 无论如何都不会漏掉注册。
+     */
+    private fun registerPigeonChannels(binaryMessage: BinaryMessenger) {
+        Log.d(TAG, "registerPigeonChannels: registering Pigeon channels (EncryptProxy etc.)")
+        GeneratedApi.AppConfig.setUp(binaryMessage, AppConfigBridge)
+        GeneratedApi.Android.setUp(binaryMessage, AndroidBridge(this))
+        GeneratedApi.NativeCommon.setUp(binaryMessage, CommonBridge(this))
+        GeneratedApi.EncryptProxy.setUp(binaryMessage, EncryptProxyBridge(this))
+        Log.d(TAG, "registerPigeonChannels: DONE")
     }
 
     override fun onPause() {

@@ -12,10 +12,36 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
+
+func applyDBPoolLimits(dbType string, sqlDB interface {
+	SetMaxOpenConns(int)
+	SetMaxIdleConns(int)
+	SetConnMaxLifetime(time.Duration)
+	SetConnMaxIdleTime(time.Duration)
+}) {
+	switch dbType {
+	case "sqlite3":
+		sqlDB.SetMaxOpenConns(1)
+		sqlDB.SetMaxIdleConns(1)
+		sqlDB.SetConnMaxLifetime(30 * time.Minute)
+		sqlDB.SetConnMaxIdleTime(10 * time.Minute)
+	case "mysql", "postgres":
+		sqlDB.SetMaxOpenConns(64)
+		sqlDB.SetMaxIdleConns(16)
+		sqlDB.SetConnMaxLifetime(30 * time.Minute)
+		sqlDB.SetConnMaxIdleTime(10 * time.Minute)
+	default:
+		sqlDB.SetMaxOpenConns(32)
+		sqlDB.SetMaxIdleConns(8)
+		sqlDB.SetConnMaxLifetime(30 * time.Minute)
+		sqlDB.SetConnMaxIdleTime(10 * time.Minute)
+	}
+}
 
 func InitDB() {
 	logLevel := logger.Silent
@@ -40,7 +66,7 @@ func InitDB() {
 	var dB *gorm.DB
 	var err error
 	if flags.Dev {
-		dB, err = gorm.Open(openSQLite("file::memory:?cache=shared"), gormConfig)
+		dB, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), gormConfig)
 		conf.Conf.Database.Type = "sqlite3"
 	} else {
 		database := conf.Conf.Database
@@ -50,7 +76,7 @@ func InitDB() {
 				if !(strings.HasSuffix(database.DBFile, ".db") && len(database.DBFile) > 3) {
 					log.Fatalf("db name error.")
 				}
-				dB, err = gorm.Open(openSQLite(fmt.Sprintf("%s?_journal=WAL&_vacuum=incremental",
+				dB, err = gorm.Open(sqlite.Open(fmt.Sprintf("%s?_journal=WAL&_vacuum=incremental",
 					database.DBFile)), gormConfig)
 			}
 		case "mysql":
@@ -83,6 +109,11 @@ func InitDB() {
 	}
 	if err != nil {
 		log.Fatalf("failed to connect database:%s", err.Error())
+	}
+	if sqlDB, err := dB.DB(); err == nil {
+		applyDBPoolLimits(conf.Conf.Database.Type, sqlDB)
+	} else {
+		log.Warnf("failed to configure db pool limits: %v", err)
 	}
 	db.Init(dB)
 }

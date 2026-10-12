@@ -101,11 +101,13 @@ func FsArchiveMeta(c *gin.Context, req *ArchiveMetaReq, user *model.User) {
 		return
 	}
 	meta, err := op.GetNearestMeta(reqPath)
-	if err != nil && !errors.Is(errors.Cause(err), errs.MetaNotFound) {
-		common.ErrorResp(c, err, 500, true)
-		return
+	if err != nil {
+		if !errors.Is(errors.Cause(err), errs.MetaNotFound) {
+			common.ErrorResp(c, err, 500, true)
+			return
+		}
 	}
-	common.GinAppendValues(c, conf.MetaKey, meta)
+	common.GinWithValue(c, conf.MetaKey, meta)
 	if !common.CanAccess(user, meta, reqPath, req.Password) {
 		common.ErrorStrResp(c, "password is incorrect or you have no permission", 403)
 		return
@@ -184,11 +186,13 @@ func FsArchiveList(c *gin.Context, req *ArchiveListReq, user *model.User) {
 		return
 	}
 	meta, err := op.GetNearestMeta(reqPath)
-	if err != nil && !errors.Is(errors.Cause(err), errs.MetaNotFound) {
-		common.ErrorResp(c, err, 500, true)
-		return
+	if err != nil {
+		if !errors.Is(errors.Cause(err), errs.MetaNotFound) {
+			common.ErrorResp(c, err, 500, true)
+			return
+		}
 	}
-	common.GinAppendValues(c, conf.MetaKey, meta)
+	common.GinWithValue(c, conf.MetaKey, meta)
 	if !common.CanAccess(user, meta, reqPath, req.Password) {
 		common.ErrorStrResp(c, "password is incorrect or you have no permission", 403)
 		return
@@ -227,7 +231,7 @@ func FsArchiveList(c *gin.Context, req *ArchiveListReq, user *model.User) {
 type ArchiveDecompressReq struct {
 	SrcDir        string   `json:"src_dir" form:"src_dir"`
 	DstDir        string   `json:"dst_dir" form:"dst_dir"`
-	Names         []string `json:"name" form:"name"`
+	Name          []string `json:"name" form:"name"`
 	ArchivePass   string   `json:"archive_pass" form:"archive_pass"`
 	InnerPath     string   `json:"inner_path" form:"inner_path"`
 	CacheFull     bool     `json:"cache_full" form:"cache_full"`
@@ -246,8 +250,8 @@ func FsArchiveDecompress(c *gin.Context) {
 		common.ErrorResp(c, errs.PermissionDenied, 403)
 		return
 	}
-	srcPaths := make([]string, 0, len(req.Names))
-	for _, name := range req.Names {
+	srcPaths := make([]string, 0, len(req.Name))
+	for _, name := range req.Name {
 		srcPath, err := user.JoinPath(stdpath.Join(req.SrcDir, name))
 		if err != nil {
 			common.ErrorResp(c, err, 403)
@@ -258,15 +262,6 @@ func FsArchiveDecompress(c *gin.Context) {
 	dstDir, err := user.JoinPath(req.DstDir)
 	if err != nil {
 		common.ErrorResp(c, err, 403)
-		return
-	}
-	dstMeta, err := op.GetNearestMeta(dstDir)
-	if err != nil && !errors.Is(errors.Cause(err), errs.MetaNotFound) {
-		common.ErrorResp(c, err, 500, true)
-		return
-	}
-	if !common.CanWrite(user, dstMeta, dstDir) {
-		common.ErrorResp(c, errs.PermissionDenied, 403)
 		return
 	}
 	tasks := make([]task.TaskExtensionInfo, 0, len(srcPaths))

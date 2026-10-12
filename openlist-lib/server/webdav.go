@@ -54,7 +54,7 @@ func WebDAVAuth(c *gin.Context) {
 	count, cok := model.LoginCache.Get(ip)
 	if cok && count >= model.DefaultMaxAuthRetries {
 		if c.Request.Method == "OPTIONS" {
-			common.GinAppendValues(c, conf.UserKey, guest)
+			common.GinWithValue(c, conf.UserKey, guest)
 			c.Next()
 			return
 		}
@@ -78,13 +78,13 @@ func WebDAVAuth(c *gin.Context) {
 					c.Abort()
 					return
 				}
-				common.GinAppendValues(c, conf.UserKey, admin)
+				common.GinWithValue(c, conf.UserKey, admin)
 				c.Next()
 				return
 			}
 		}
 		if c.Request.Method == "OPTIONS" {
-			common.GinAppendValues(c, conf.UserKey, guest)
+			common.GinWithValue(c, conf.UserKey, guest)
 			c.Next()
 			return
 		}
@@ -96,7 +96,7 @@ func WebDAVAuth(c *gin.Context) {
 	user, ok := tryLogin(username, password)
 	if !ok {
 		if c.Request.Method == "OPTIONS" {
-			common.GinAppendValues(c, conf.UserKey, guest)
+			common.GinWithValue(c, conf.UserKey, guest)
 			c.Next()
 			return
 		}
@@ -109,7 +109,7 @@ func WebDAVAuth(c *gin.Context) {
 	model.LoginCache.Del(ip)
 	if user.Disabled || !user.CanWebdavRead() {
 		if c.Request.Method == "OPTIONS" {
-			common.GinAppendValues(c, conf.UserKey, guest)
+			common.GinWithValue(c, conf.UserKey, guest)
 			c.Next()
 			return
 		}
@@ -117,22 +117,22 @@ func WebDAVAuth(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	if (c.Request.Method == "PUT" || c.Request.Method == "MKCOL") && !user.CanWebdavManage() {
+	if (c.Request.Method == "PUT" || c.Request.Method == "MKCOL") && (!user.CanWebdavManage() || !user.CanWrite()) {
 		c.Status(http.StatusForbidden)
 		c.Abort()
 		return
 	}
-	if c.Request.Method == "MOVE" && !user.CanWebdavManage() {
+	if c.Request.Method == "MOVE" && (!user.CanWebdavManage() || (!user.CanMove() && !user.CanRename())) {
 		c.Status(http.StatusForbidden)
 		c.Abort()
 		return
 	}
-	if c.Request.Method == "COPY" && !user.CanWebdavManage() {
+	if c.Request.Method == "COPY" && (!user.CanWebdavManage() || !user.CanCopy()) {
 		c.Status(http.StatusForbidden)
 		c.Abort()
 		return
 	}
-	if c.Request.Method == "DELETE" && !user.CanWebdavManage() {
+	if c.Request.Method == "DELETE" && (!user.CanWebdavManage() || !user.CanRemove()) {
 		c.Status(http.StatusForbidden)
 		c.Abort()
 		return
@@ -142,12 +142,7 @@ func WebDAVAuth(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	common.GinAppendValues(c, conf.UserKey, user)
-	if user.IsGuest() {
-		common.GinAppendValues(c, conf.MetaPassKey, password)
-	} else {
-		common.GinAppendValues(c, conf.MetaPassKey, "")
-	}
+	common.GinWithValue(c, conf.UserKey, user)
 	c.Next()
 }
 

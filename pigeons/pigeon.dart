@@ -136,6 +136,12 @@ abstract class EncryptProxy {
   
   /// 获取完整配置（JSON格式）
   String getEncryptConfigJson();
+
+  /// 导出原始加密配置（含密码，即磁盘 encrypt_config.json 内容）
+  String exportEncryptConfigRaw();
+
+  /// 导入原始加密配置（写回 encrypt_config.json 并应用）
+  void importEncryptConfigRaw(String configJson);
   
   /// 设置管理密码
   void setEncryptAdminPassword(String password);

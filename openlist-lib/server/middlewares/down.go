@@ -17,7 +17,7 @@ import (
 
 func PathParse(c *gin.Context) {
 	rawPath := parsePath(c.Param("path"))
-	common.GinAppendValues(c, conf.PathKey, rawPath)
+	common.GinWithValue(c, conf.PathKey, rawPath)
 	c.Next()
 }
 
@@ -25,11 +25,13 @@ func Down(verifyFunc func(string, string) error) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		rawPath := c.Request.Context().Value(conf.PathKey).(string)
 		meta, err := op.GetNearestMeta(rawPath)
-		if err != nil && !errors.Is(errors.Cause(err), errs.MetaNotFound) {
-			common.ErrorPage(c, err, 500, true)
-			return
+		if err != nil {
+			if !errors.Is(errors.Cause(err), errs.MetaNotFound) {
+				common.ErrorPage(c, err, 500, true)
+				return
+			}
 		}
-		common.GinAppendValues(c, conf.MetaKey, meta)
+		common.GinWithValue(c, conf.MetaKey, meta)
 		// verify sign
 		if needSign(meta, rawPath) {
 			s := c.Query("sign")

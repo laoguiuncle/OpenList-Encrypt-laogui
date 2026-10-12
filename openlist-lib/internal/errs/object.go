@@ -17,7 +17,3 @@ var (
 func IsObjectNotFound(err error) bool {
 	return errors.Is(pkgerr.Cause(err), ObjectNotFound)
 }
-
-func IsObjectAlreadyExists(err error) bool {
-	return errors.Is(pkgerr.Cause(err), ObjectAlreadyExists)
-}

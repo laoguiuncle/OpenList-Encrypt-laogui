@@ -160,7 +160,6 @@ func (p *ProxyServer) stopRangeProbeLoop() {
 
 func (p *ProxyServer) rangeProbeLoop() {
 	defer p.rangeProbeWG.Done()
-	defer recoverBackgroundTask("range_probe_loop")
 	ticker := time.NewTicker(rangeProbeBatchInterval)
 	defer ticker.Stop()
 	for {

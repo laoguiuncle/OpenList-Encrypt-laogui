@@ -37,9 +37,7 @@ func TestUpstreamBackoffState(t *testing.T) {
 			UpstreamBackoffSeconds: 2,
 		},
 	}
-	for i := 0; i < upstreamFailureThreshold; i++ {
-		p.markUpstreamFailure(errors.New("boom"))
-	}
+	p.markUpstreamFailure(errors.New("boom"))
 	active, remain, reason := p.upstreamBackoffState()
 	if !active {
 		t.Fatalf("expected active backoff")

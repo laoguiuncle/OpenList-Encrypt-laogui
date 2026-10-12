@@ -1,7 +1,9 @@
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:openlist_encrypt/contant/native_bridge.dart';
 import 'package:openlist_encrypt/generated_api.dart';
+import 'package:openlist_encrypt/utils/encrypt_home_pref.dart';
 import 'package:openlist_encrypt/utils/intent_utils.dart';
 import 'package:openlist_encrypt/utils/download_manager.dart';
 import 'package:flutter/material.dart';
@@ -34,68 +36,149 @@ class WebScreenState extends State<WebScreen> {
   );
 
   double _progress = 0;
-  String _url = "http://127.0.0.1:5244";
+  String? _url;
   bool _canGoBack = false;
-  bool _serverReady = false;
-  String _startupStatus = '';
-  int _retryCount = 0;
+  int _proxyErrorRetry = 0;
+
+  /// 仅在「启动/切换首页」这一次加载期间启用上游报错兜底，
+  /// 加载成功后立即关闭，避免正常浏览（前进后退）时被误判重载。
+  bool _startupGuard = false;
 
   onClickNavigationBar() {
     log("onClickNavigationBar");
     _webViewController?.reload();
   }
 
-  Future<void> _waitForServer() async {
-    _retryCount = 0;
-    while (!_serverReady && mounted) {
-      final running = await Android().isRunning();
-      if (running) {
-        // Try a quick HTTP probe to confirm the server is actually accepting connections
+  /// 解析首页地址：
+  /// - 「设置加密页为首页」打开 → 加密页端口（5344）
+  /// - 关闭 → 普通网页端口（5244）
+  ///
+  /// ⚠️ 首次启动时后台服务/加密代理可能尚未监听端口，若立即加载会得到
+  /// `connection refused` 错误页。故先等服务就绪（探测端口可连）再创建 WebView。
+  Future<void> _resolveHomeUrl() async {
+    // 1) 上游 OpenList 端口（加密代理会把请求转发到它）
+    int openListPort = 5244;
+    try {
+      final p = await Android().getOpenListHttpPort();
+      if (p > 0) openListPort = p;
+    } catch (e) {
+      log("getOpenListHttpPort failed: $e");
+    }
+
+    // 2) 目标端口：加密页为首页 → 加密代理端口(5344)；否则 → OpenList 端口(5244)
+    bool encryptAsHome = false;
+    try {
+      encryptAsHome = await EncryptHomePref.isEnabled();
+    } catch (e) {
+      log("EncryptHomePref read failed: $e");
+    }
+    int targetPort = openListPort;
+    if (encryptAsHome) {
+      try {
+        final p = await NativeBridge.encryptProxy.getEncryptProxyPort();
+        if (p > 0) targetPort = p;
+      } catch (e) {
+        log("getEncryptProxyPort failed: $e");
+      }
+      if (targetPort <= 0) targetPort = 5344;
+    }
+
+    // 3) 确保底层服务已启动（首次启动时 onInit 的启动可能还没跑完）
+    try {
+      if (!await Android().isRunning()) {
+        await Android().startService();
+      }
+    } catch (e) {
+      log("ensure service failed: $e");
+    }
+
+    // 4) 等端口就绪再加载。⚠️ 打开加密页时必须先等**上游** OpenList(5244) 就绪：
+    //    加密代理(5344)在启动上早于 OpenList 服务，若此时加载 5344，代理会把
+    //    Go 的报错正文直接返回给 WebView（形如
+    //    `Get "http://127.0.0.1:5244/": dial tcp ...: connection refused`），
+    //    这种响应属于“加载成功”，onReceivedError 不会触发 ⇒ 表现为错误页常驻。
+    if (targetPort != openListPort) {
+      await _waitForPortReady(openListPort);
+    }
+    await _waitForPortReady(targetPort);
+
+    if (!mounted) return;
+    final url = "http://localhost:$targetPort";
+    _proxyErrorRetry = 0;
+    _startupGuard = true; // 仅本次加载启用兜底
+    setState(() {
+      _url = url;
+    });
+    // 若 WebView 已创建，直接加载新地址（设置变更时即时生效）
+    await _webViewController?.loadUrl(urlRequest: URLRequest(url: WebUri(url)));
+  }
+
+  /// 探测本地端口是否已可连接；未就绪则间隔重试，最多约 [maxTries]×[intervalMs]。
+  Future<bool> _waitForPortReady(int port,
+      {int maxTries = 40, int intervalMs = 250}) async {
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(milliseconds: 500);
+    try {
+      for (int i = 0; i < maxTries; i++) {
         try {
-          _startupStatus = '正在连接服务...';
-          if (mounted) setState(() {});
-          await Future.delayed(const Duration(seconds: 1));
-        } catch (_) {}
-        if (mounted) {
-          setState(() {
-            _serverReady = true;
-            _startupStatus = '';
-          });
-          _webViewController?.reload();
+          final req = await client.getUrl(Uri.parse("http://127.0.0.1:$port/"));
+          final resp = await req.close();
+          await resp.drain();
+          return true;
+        } catch (_) {
+          await Future.delayed(Duration(milliseconds: intervalMs));
         }
+      }
+    } finally {
+      client.close(force: true);
+    }
+    return false;
+  }
+
+  /// 兜底：页面虽「加载成功」，正文却可能是加密代理返回的上游报错
+  /// （Go 的 `Get "http://127.0.0.1:5244/": dial tcp ...: connection refused`）。
+  /// ⚠️ 仅在 [_startupGuard] 为真（启动/切换首页那一次加载）时检查，
+  /// 加载到正常正文后立即关闭，正常浏览时不会再触发重载。
+  Future<void> _recoverFromUpstreamError(
+      InAppWebViewController controller) async {
+    if (!_startupGuard) return;
+    if (_proxyErrorRetry >= 5) {
+      _startupGuard = false;
+      return;
+    }
+    try {
+      final raw = await controller.evaluateJavascript(
+          source:
+              "(document.body && document.body.innerText) ? document.body.innerText.slice(0, 400) : ''");
+      final text = raw?.toString() ?? '';
+      final looksLikeUpstreamError = text.contains('connection refused') &&
+          (text.contains('dial tcp') || text.contains('Get "http'));
+      if (!looksLikeUpstreamError) {
+        _proxyErrorRetry = 0;
+        _startupGuard = false; // 正常正文 → 关闭兜底
         return;
       }
-      _retryCount++;
-      final delay = (_retryCount < 10) ? 2000 : 5000;
-      if (_retryCount <= 3) {
-        _startupStatus = '正在启动 OpenList 服务...';
-      } else if (_retryCount <= 30) {
-        _startupStatus = '服务初始化中（${_retryCount}s）...';
-      } else {
-        _startupStatus = '服务启动较慢（${(_retryCount * 2 / 60).toStringAsFixed(1)}分钟），请耐心等待...';
-      }
-      if (mounted) setState(() {});
-      await Future.delayed(Duration(milliseconds: delay));
+      _proxyErrorRetry++;
+      log("detected upstream error page, reload #$_proxyErrorRetry");
+      await Future.delayed(const Duration(milliseconds: 800));
+      controller.reload();
+    } catch (e) {
+      log("upstream error check failed: $e");
     }
+  }
+
+  /// 供设置页在切换「设置加密页为首页」后调用，使网页标签立即生效。
+  void onHomeSettingChanged() {
+    _resolveHomeUrl();
   }
 
   @override
   void initState() {
-    Android().getOpenListHttpPort().then((port) async {
-      final nextUrl = "http://127.0.0.1:$port";
-      if (!mounted) return;
-      setState(() {
-        _url = nextUrl;
-      });
-      if (_webViewController != null) {
-        await _webViewController!.loadUrl(
-          urlRequest: URLRequest(url: WebUri(nextUrl)),
-        );
-      }
-    });
+    _resolveHomeUrl();
 
-    // Start background server readiness check
-    _waitForServer();
+    // NativeEvent().addServiceStatusListener((isRunning) {
+    //   if (isRunning) _webViewController?.reload();
+    // });
     super.initState();
   }
 
@@ -117,33 +200,15 @@ class WebScreenState extends State<WebScreen> {
         child: Scaffold(
           body: Column(children: <Widget>[
             SizedBox(height: MediaQuery.of(context).padding.top),
-            if (_startupStatus.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                color: Colors.orange.shade50,
-                child: Row(
-                  children: [
-                    const SizedBox(
-                      width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(_startupStatus,
-                        style: const TextStyle(fontSize: 13, color: Colors.deepOrange)),
-                    ),
-                  ],
-                ),
-              ),
             LinearProgressIndicator(
               value: _progress,
               backgroundColor: Colors.grey[200],
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
             ),
             Expanded(
-              child: InAppWebView(
+              child: _url == null ? const SizedBox.shrink() : InAppWebView(
                 initialSettings: settings,
-                initialUrlRequest: URLRequest(url: WebUri(_url)),
+                initialUrlRequest: URLRequest(url: WebUri(_url!)),
                 onWebViewCreated: (InAppWebViewController controller) {
                   _webViewController = controller;
                 },
@@ -190,11 +255,26 @@ class WebScreenState extends State<WebScreen> {
                   return NavigationActionPolicy.ALLOW;
                 },
                 onReceivedError: (controller, request, error) async {
-                  if (!await Android().isRunning()) {
-                    // Server is not running yet, keep waiting
-                    _serverReady = false;
-                    _waitForServer();
-                  }
+                  // ⚠️ 只在「本地服务确实没在跑」时才尝试拉起并重载。
+                  // 手机后退/取消在途请求也会触发本回调（ERR_ABORTED 等），
+                  // 若无条件重载会导致页面反复刷新 —— 故此处严格收窄条件。
+                  try {
+                    final u = request.url;
+                    final isLocal = u.host == 'localhost' ||
+                        u.host == '127.0.0.1' ||
+                        u.host == '::1';
+                    if (!isLocal) return;
+                    if (!await Android().isRunning()) {
+                      await Android().startService();
+                      for (int i = 0; i < 3; i++) {
+                        await Future.delayed(const Duration(milliseconds: 500));
+                        if (await Android().isRunning()) {
+                          controller.reload();
+                          break;
+                        }
+                      }
+                    }
+                  } catch (_) {}
                 },
                 onDownloadStartRequest: (controller, url) async {
                   Get.showSnackbar(GetSnackBar(
@@ -245,6 +325,8 @@ class WebScreenState extends State<WebScreen> {
                   setState(() {
                     _progress = 0;
                   });
+                  // 仅启动那一次做上游报错兜底检查（正常浏览不会重载）
+                  _recoverFromUpstreamError(controller);
                 },
                 onProgressChanged:
                     (InAppWebViewController controller, int progress) {

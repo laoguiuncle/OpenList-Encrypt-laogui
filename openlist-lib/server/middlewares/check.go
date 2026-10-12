@@ -29,7 +29,7 @@ func StoragesLoaded(c *gin.Context) {
 			return
 		}
 	}
-	common.GinAppendValues(c,
+	common.GinWithValue(c,
 		conf.ApiUrlKey, common.GetApiUrlFromRequest(c.Request),
 	)
 	c.Next()

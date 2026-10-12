@@ -577,7 +577,7 @@ func (p *ProxyServer) handleFsList(w http.ResponseWriter, r *http.Request) {
 		copyWithBuffer(w, resp.Body)
 		return
 	}
-	prefetchDirs, err := p.streamRewriteFsListResponse(w, resp.Body, dirPath, parentEncPath)
+	prefetchDirs, err := p.streamRewriteFsListResponse(w, resp.Body, dirPath, parentEncPath, r)
 	if err != nil {
 		log.Warnf("%s stream rewrite fs list failed: %v", internal.LogPrefix(ctx, internal.TagList), err)
 		return

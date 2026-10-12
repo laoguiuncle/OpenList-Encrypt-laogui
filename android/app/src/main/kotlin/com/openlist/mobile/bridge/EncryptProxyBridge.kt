@@ -225,7 +225,27 @@ class EncryptProxyBridge(private val context: Context) : GeneratedApi.EncryptPro
             "{}"
         }
     }
-    
+
+    override fun exportEncryptConfigRaw(): String {
+        Log.d(TAG, "exportEncryptConfigRaw")
+        try {
+            return Openlistlib.exportEncryptConfigRaw()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to export encrypt config", e)
+            throw e
+        }
+    }
+
+    override fun importEncryptConfigRaw(configJson: String) {
+        Log.d(TAG, "importEncryptConfigRaw")
+        try {
+            Openlistlib.importEncryptConfigRaw(configJson)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to import encrypt config", e)
+            throw e
+        }
+    }
+
     override fun setEncryptAdminPassword(password: String) {
         Log.d(TAG, "setEncryptAdminPassword")
         try {
@@ -242,6 +262,16 @@ class EncryptProxyBridge(private val context: Context) : GeneratedApi.EncryptPro
         } catch (e: Exception) {
             Log.e(TAG, "Failed to verify admin password", e)
             false
+        }
+    }
+
+    override fun setEncryptAdvancedConfigJson(configJson: String) {
+        Log.d(TAG, "setEncryptAdvancedConfigJson")
+        try {
+            Openlistlib.setEncryptAdvancedConfigJson(configJson)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to set advanced config", e)
+            throw e
         }
     }
 }

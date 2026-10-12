@@ -2,14 +2,13 @@ package fs
 
 import (
 	"context"
+
 	"github.com/OpenListTeam/OpenList/v4/internal/conf"
-	"github.com/OpenListTeam/OpenList/v4/internal/errs"
 	"github.com/OpenListTeam/OpenList/v4/internal/model"
 	"github.com/OpenListTeam/OpenList/v4/internal/op"
-	"github.com/OpenListTeam/OpenList/v4/server/common"
+	"github.com/OpenListTeam/OpenList/v4/pkg/utils"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"path"
 )
 
 // List files
@@ -44,29 +43,7 @@ func list(ctx context.Context, path string, args *ListArgs) ([]model.Obj, error)
 		om.InitHideReg(meta.Hide)
 	}
 	objs := om.Merge(_objs, virtualFiles...)
-	objs, err = filterReadableObjs(objs, user, path, meta)
-	return objs, err
-}
-
-func filterReadableObjs(objs []model.Obj, user *model.User, reqPath string, parentMeta *model.Meta) ([]model.Obj, error) {
-	var result []model.Obj
-	for _, obj := range objs {
-		var meta *model.Meta
-		objPath := path.Join(reqPath, obj.GetName())
-		if obj.IsDir() {
-			var err error
-			meta, err = op.GetNearestMeta(objPath)
-			if err != nil && !errors.Is(errors.Cause(err), errs.MetaNotFound) {
-				return result, err
-			}
-		} else {
-			meta = parentMeta
-		}
-		if common.CanRead(user, meta, objPath) {
-			result = append(result, obj)
-		}
-	}
-	return result, nil
+	return objs, nil
 }
 
 func whetherHide(user *model.User, meta *model.Meta, path string) bool {
@@ -83,7 +60,7 @@ func whetherHide(user *model.User, meta *model.Meta, path string) bool {
 		return false
 	}
 	// if meta doesn't apply to sub_folder, don't hide
-	if !common.MetaCoversPath(meta.Path, path, meta.HSub) {
+	if !utils.PathEqual(meta.Path, path) && !meta.HSub {
 		return false
 	}
 	// if is guest, hide

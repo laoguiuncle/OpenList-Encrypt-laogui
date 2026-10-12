@@ -78,7 +78,6 @@ func UpdateMeta(u *model.Meta) error {
 		return err
 	}
 	metaCache.Del(old.Path)
-	metaCache.Del(u.Path)
 	return db.UpdateMeta(u)
 }
 

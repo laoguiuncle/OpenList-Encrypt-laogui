@@ -28,9 +28,10 @@ class S {
   static const AppLocalizationDelegate delegate = AppLocalizationDelegate();
 
   static Future<S> load(Locale locale) {
-    final name = (locale.countryCode?.isEmpty ?? false)
-        ? locale.languageCode
-        : locale.toString();
+    final name =
+        (locale.countryCode?.isEmpty ?? false)
+            ? locale.languageCode
+            : locale.toString();
     final localeName = Intl.canonicalizedLocale(name);
     return initializeMessages(localeName).then((_) {
       Intl.defaultLocale = localeName;
@@ -112,6 +113,11 @@ class S {
   /// `下载APK`
   String get downloadApk {
     return Intl.message('下载APK', name: 'downloadApk', desc: '', args: []);
+  }
+
+  /// `更新检查失败`
+  String get updateFailed {
+    return Intl.message('更新检查失败', name: 'updateFailed', desc: '', args: []);
   }
 
   /// `关于`
@@ -309,6 +315,26 @@ class S {
     return Intl.message(
       '打开主界面时的首页',
       name: 'autoStartWebPageDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `设置加密页为首页`
+  String get encryptPageAsHome {
+    return Intl.message(
+      '设置加密页为首页',
+      name: 'encryptPageAsHome',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `打开为5344，关闭为5244`
+  String get encryptPageAsHomeDesc {
+    return Intl.message(
+      '打开为5344，关闭为5244',
+      name: 'encryptPageAsHomeDesc',
       desc: '',
       args: [],
     );
@@ -1981,12 +2007,7 @@ class S {
 
   /// `导出日志`
   String get exportLogs {
-    return Intl.message(
-      '导出日志',
-      name: 'exportLogs',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('导出日志', name: 'exportLogs', desc: '', args: []);
   }
 
   /// `导出所有日志到文件`
@@ -2001,12 +2022,7 @@ class S {
 
   /// `暂无日志可导出`
   String get noLogsToExport {
-    return Intl.message(
-      '暂无日志可导出',
-      name: 'noLogsToExport',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('暂无日志可导出', name: 'noLogsToExport', desc: '', args: []);
   }
 
   /// `日志导出成功`
@@ -2021,12 +2037,7 @@ class S {
 
   /// `日志导出失败`
   String get logsExportFailed {
-    return Intl.message(
-      '日志导出失败',
-      name: 'logsExportFailed',
-      desc: '',
-      args: [],
-    );
+    return Intl.message('日志导出失败', name: 'logsExportFailed', desc: '', args: []);
   }
 }
 

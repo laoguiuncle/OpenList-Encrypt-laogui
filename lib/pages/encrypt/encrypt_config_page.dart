@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'dart:io' as io;
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart';
 import '../../generated/l10n.dart';
 import '../../contant/native_bridge.dart';
 import 'provider_routing_page.dart';
-import 'dir_sync_status_page.dart';
 
 /// 加密配置页面
 class EncryptConfigPage extends StatefulWidget {
@@ -213,22 +217,7 @@ class _EncryptConfigPageState extends State<EncryptConfigPage> {
   Future<void> _checkProxyStatus() async {
     try {
       final running = await NativeBridge.encryptProxy.isEncryptProxyRunning();
-      final proxyPort = int.tryParse(_proxyPortController.text) ?? 5344;
-      var ready = false;
-      if (running) {
-        final dio = Dio(BaseOptions(
-          connectTimeout: const Duration(seconds: 2),
-          receiveTimeout: const Duration(seconds: 2),
-          sendTimeout: const Duration(seconds: 2),
-        ));
-        try {
-          final resp = await dio.get('http://127.0.0.1:$proxyPort/ping');
-          ready = resp.statusCode != null && resp.statusCode! >= 200 && resp.statusCode! < 500;
-        } catch (_) {
-          ready = false;
-        }
-      }
-      setState(() => _proxyRunning = running && ready);
+      setState(() => _proxyRunning = running);
     } catch (e) {
       debugPrint('Failed to check proxy status: $e');
     }
@@ -373,6 +362,83 @@ class _EncryptConfigPageState extends State<EncryptConfigPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('操作失败: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportConfig() async {
+    try {
+      final json = await NativeBridge.encryptProxy.exportEncryptConfigRaw();
+      if (json.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('导出失败：配置为空')),
+          );
+        }
+        return;
+      }
+      final file = XFile.fromData(
+        Uint8List.fromList(utf8.encode(json)),
+        name: 'encrypt_config.json',
+        mimeType: 'application/json',
+      );
+      await Share.shareXFiles(
+        [file],
+        subject: 'encrypt_config.json',
+        text: 'OpenList 加密配置备份',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('配置已导出，请选择保存位置')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导出失败: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _importConfig() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      String? content;
+      if (file.bytes != null) {
+        content = utf8.decode(file.bytes!);
+      } else if (file.path != null) {
+        content = await io.File(file.path!).readAsString();
+      }
+      if (content == null || content.trim().isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('文件内容为空')),
+          );
+        }
+        return;
+      }
+      // 校验为合法 JSON
+      json.decode(content);
+      await NativeBridge.encryptProxy.importEncryptConfigRaw(content);
+      // 重新加载配置与代理状态（导入会重启代理以应用新配置）
+      await _initAndLoadConfig();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('配置已导入并应用')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('导入失败: $e')),
         );
       }
     }
@@ -643,6 +709,16 @@ class _EncryptConfigPageState extends State<EncryptConfigPage> {
       appBar: AppBar(
         title: const Text('加密代理配置'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download),
+            onPressed: _exportConfig,
+            tooltip: '导出配置',
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_upload),
+            onPressed: _importConfig,
+            tooltip: '导入配置',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _initAndLoadConfig,
@@ -926,28 +1002,6 @@ class _EncryptConfigPageState extends State<EncryptConfigPage> {
                         labelText: '密码（留空保持不变）',
                       ),
                     ],
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('主动探测 / 数据同步状态'),
-                      subtitle: Text(
-                        _dbExportBaseUrlController.text.trim().isEmpty
-                            ? '先配置 Go 服务 API 地址后查看'
-                            : '查看总量、进度、最近更新时间和下次计划时间',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: _dbExportBaseUrlController.text.trim().isEmpty
-                          ? null
-                          : () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => DirSyncStatusPage(
-                                    baseUrl: _dbExportBaseUrlController.text.trim(),
-                                    proxyPort: int.tryParse(_proxyPortController.text) ?? 5344,
-                                  ),
-                                ),
-                              );
-                            },
-                    ),
                     
                     const SizedBox(height: 24),
 

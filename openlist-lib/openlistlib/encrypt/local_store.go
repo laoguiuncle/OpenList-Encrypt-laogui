@@ -20,7 +20,6 @@ type StreamStrategy string
 const (
 	StreamStrategyRange   StreamStrategy = "range"
 	StreamStrategyChunked StreamStrategy = "chunked"
-	StreamStrategyFull    StreamStrategy = "full"
 )
 
 type storeRecordKind int

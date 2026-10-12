@@ -1,6 +1,3 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:openlist_encrypt/generated/l10n.dart';
 import 'package:openlist_encrypt/pages/openlist/openlist.dart';
 import 'package:openlist_encrypt/pages/app_update_dialog.dart';
@@ -9,6 +6,7 @@ import 'package:openlist_encrypt/pages/web/web.dart';
 import 'package:openlist_encrypt/pages/download_manager_page.dart';
 import 'package:openlist_encrypt/pages/encrypt/encrypt_config_page.dart';
 import 'package:openlist_encrypt/utils/download_manager.dart';
+import 'package:openlist_encrypt/utils/encrypt_home_pref.dart';
 import 'package:openlist_encrypt/utils/notification_manager.dart';
 import 'package:openlist_encrypt/utils/service_manager.dart';
 import 'package:openlist_encrypt/utils/language_controller.dart';
@@ -24,21 +22,30 @@ import 'contant/native_bridge.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // 初始化语言控制器
   Get.put(LanguageController());
-  
+
   // 初始化通知管理器
   await NotificationManager.initialize();
-  
+
   // 初始化服务管理器
   await ServiceManager.instance.initialize();
-  
+
   // Android
   if (!kIsWeb &&
       kDebugMode &&
       defaultTargetPlatform == TargetPlatform.android) {
     await InAppWebViewController.setWebContentsDebuggingEnabled(kDebugMode);
+  }
+
+  // iOS: auto-start service if it should be running
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    // Check if service should be auto-started
+    final autoStart = await NativeBridge.appConfig.isStartAtBootEnabled();
+    if (autoStart) {
+      await ServiceManager.instance.startService();
+    }
   }
 
   runApp(const MyApp());
@@ -167,76 +174,33 @@ class MyHomePage extends StatelessWidget {
 
 class _MainController extends GetxController {
   final selectedIndex = 1.obs;
-  static const _backendBootTimeoutSeconds = 20;
-  static const _proxyBootTimeoutSeconds = 10;
 
   setPageIndex(int index) {
     selectedIndex.value = index;
   }
 
-  Future<bool> _waitForLocalHTTPReady(String baseUrl, {int timeoutSeconds = 20}) async {
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 2);
-    final deadline = DateTime.now().add(Duration(seconds: timeoutSeconds));
-    try {
-      while (DateTime.now().isBefore(deadline)) {
-        try {
-          final req = await client.getUrl(Uri.parse('$baseUrl/ping'));
-          final resp = await req.close().timeout(const Duration(seconds: 2));
-          await resp.drain<void>();
-          if (resp.statusCode >= 200 && resp.statusCode < 500) {
-            return true;
-          }
-        } catch (_) {
-          // Keep polling until timeout.
-        }
-        await Future.delayed(const Duration(milliseconds: 500));
-      }
-      return false;
-    } finally {
-      client.close(force: true);
-    }
-  }
-
-  Future<void> _warmLocalServiceReadiness() async {
-    final backendReady = await _waitForLocalHTTPReady(
-      'http://127.0.0.1:5244',
-      timeoutSeconds: _backendBootTimeoutSeconds,
-    );
-    if (!backendReady) {
-      debugPrint('OpenList backend not ready within ${_backendBootTimeoutSeconds}s');
-    }
-
-    final proxyReady = await _waitForLocalHTTPReady(
-      'http://127.0.0.1:5344',
-      timeoutSeconds: _proxyBootTimeoutSeconds,
-    );
-    if (!proxyReady) {
-      debugPrint('Encrypt proxy not ready within ${_proxyBootTimeoutSeconds}s');
-    }
-  }
-
-  Future<void> _startLocalServers() async {
-    await ServiceManager.instance.startService();
-
-    final dataDir = await NativeBridge.appConfig.getDataDir();
-    await NativeBridge.encryptProxy.initEncryptProxy('$dataDir/encrypt_config.json');
-    await NativeBridge.encryptProxy.startEncryptProxy();
-
-    unawaited(_warmLocalServiceReadiness());
-  }
-
   @override
   void onInit() async {
+    // 启动首页：
+    //  - 「设置加密页为首页」开启 → 进「网页」标签（其地址为加密页 5344）
+    //  - 否则沿用原行为：「将网页设置为打开首页」开启 → 进「网页」标签（5244）
+    final encryptAsHome = await EncryptHomePref.isEnabled();
     final webPage = await NativeBridge.appConfig.isAutoOpenWebPageEnabled();
-    if (webPage) {
+    if (encryptAsHome || webPage) {
       setPageIndex(MyHomePage.webPageIndex);
     }
 
+    // 初始化并启动加密代理
     try {
-      await _startLocalServers();
+      final dataDir = await NativeBridge.appConfig.getDataDir();
+      await NativeBridge.encryptProxy.initEncryptProxy('$dataDir/encrypt_config.json');
+      await NativeBridge.encryptProxy.startEncryptProxy();
     } catch (e) {
-      debugPrint('Failed to start local servers: $e');
+      debugPrint('Failed to start encrypt proxy: $e');
     }
+
+    // 自动启动后台服务
+    await ServiceManager.instance.startService();
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       if (await NativeBridge.appConfig.isAutoCheckUpdateEnabled()) {

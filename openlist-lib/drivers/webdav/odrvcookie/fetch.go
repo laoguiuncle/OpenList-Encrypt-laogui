@@ -151,7 +151,8 @@ func getLoginUrl(endpoint string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	tld := spRoot.Host[strings.LastIndex(spRoot.Host, ".")+1:]
+	domains := strings.Split(spRoot.Host, ".")
+	tld := domains[len(domains)-1]
 	loginUrl, ok := loginUrlsMap[tld]
 	if !ok {
 		return "", fmt.Errorf("tld %s is not supported", tld)

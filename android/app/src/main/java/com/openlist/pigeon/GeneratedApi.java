@@ -820,6 +820,11 @@ public class GeneratedApi {
     @NonNull
     String getEncryptConfigJson();
 
+    @NonNull
+    String exportEncryptConfigRaw();
+
+    void importEncryptConfigRaw(@NonNull String configJson);
+
     void setEncryptAdminPassword(@NonNull String password);
 
     @NonNull
@@ -970,10 +975,10 @@ public class GeneratedApi {
                 ArrayList<Object> wrapped = new ArrayList<Object>();
                 ArrayList<Object> args = (ArrayList<Object>) message;
                 String hostArg = (String) args.get(0);
-                Long portArg = (Long) args.get(1);
+                Number portArg = (Number) args.get(1);
                 Boolean httpsArg = (Boolean) args.get(2);
                 try {
-                  api.setEncryptAlistHost(hostArg, portArg, httpsArg);
+                  api.setEncryptAlistHost(hostArg, ((portArg == null) ? null : portArg.longValue()), httpsArg);
                   wrapped.add(0, null);
                 } catch (Throwable exception) {
                   ArrayList<Object> wrappedError = wrapError(exception);
@@ -994,9 +999,9 @@ public class GeneratedApi {
               (message, reply) -> {
                 ArrayList<Object> wrapped = new ArrayList<Object>();
                 ArrayList<Object> args = (ArrayList<Object>) message;
-                Long portArg = (Long) args.get(0);
+                Number portArg = (Number) args.get(0);
                 try {
-                  api.setEncryptProxyPort(portArg);
+                  api.setEncryptProxyPort(((portArg == null) ? null : portArg.longValue()));
                   wrapped.add(0, null);
                 } catch (Throwable exception) {
                   ArrayList<Object> wrappedError = wrapError(exception);
@@ -1063,7 +1068,7 @@ public class GeneratedApi {
                 ArrayList<Object> args = (ArrayList<Object>) message;
                 Boolean enableArg = (Boolean) args.get(0);
                 String baseUrlArg = (String) args.get(1);
-                Long intervalSecondsArg = (Long) args.get(2);
+                Number intervalSecondsArg = (Number) args.get(2);
                 Boolean authEnabledArg = (Boolean) args.get(3);
                 String usernameArg = (String) args.get(4);
                 String passwordArg = (String) args.get(5);
@@ -1071,7 +1076,7 @@ public class GeneratedApi {
                   api.setEncryptDbExportSyncConfig(
                       enableArg,
                       baseUrlArg,
-                      intervalSecondsArg,
+                      ((intervalSecondsArg == null) ? null : intervalSecondsArg.longValue()),
                       authEnabledArg,
                       usernameArg,
                       passwordArg);
@@ -1095,17 +1100,17 @@ public class GeneratedApi {
               (message, reply) -> {
                 ArrayList<Object> wrapped = new ArrayList<Object>();
                 ArrayList<Object> args = (ArrayList<Object>) message;
-                Long upstreamTimeoutSecondsArg = (Long) args.get(0);
-                Long probeTimeoutSecondsArg = (Long) args.get(1);
-                Long probeBudgetSecondsArg = (Long) args.get(2);
-                Long upstreamBackoffSecondsArg = (Long) args.get(3);
+                Number upstreamTimeoutSecondsArg = (Number) args.get(0);
+                Number probeTimeoutSecondsArg = (Number) args.get(1);
+                Number probeBudgetSecondsArg = (Number) args.get(2);
+                Number upstreamBackoffSecondsArg = (Number) args.get(3);
                 Boolean enableLocalBypassArg = (Boolean) args.get(4);
                 try {
                   api.setEncryptNetworkPolicy(
-                      upstreamTimeoutSecondsArg,
-                      probeTimeoutSecondsArg,
-                      probeBudgetSecondsArg,
-                      upstreamBackoffSecondsArg,
+                      ((upstreamTimeoutSecondsArg == null) ? null : upstreamTimeoutSecondsArg.longValue()),
+                      ((probeTimeoutSecondsArg == null) ? null : probeTimeoutSecondsArg.longValue()),
+                      ((probeBudgetSecondsArg == null) ? null : probeBudgetSecondsArg.longValue()),
+                      ((upstreamBackoffSecondsArg == null) ? null : upstreamBackoffSecondsArg.longValue()),
                       enableLocalBypassArg);
                   wrapped.add(0, null);
                 } catch (Throwable exception) {
@@ -1177,7 +1182,7 @@ public class GeneratedApi {
               (message, reply) -> {
                 ArrayList<Object> wrapped = new ArrayList<Object>();
                 ArrayList<Object> args = (ArrayList<Object>) message;
-                Long indexArg = (Long) args.get(0);
+                Number indexArg = (Number) args.get(0);
                 String pathArg = (String) args.get(1);
                 String passwordArg = (String) args.get(2);
                 String encTypeArg = (String) args.get(3);
@@ -1185,7 +1190,7 @@ public class GeneratedApi {
                 String encSuffixArg = (String) args.get(5);
                 Boolean enableArg = (Boolean) args.get(6);
                 try {
-                  api.updateEncryptPath(indexArg, pathArg, passwordArg, encTypeArg, encNameArg, encSuffixArg, enableArg);
+                  api.updateEncryptPath(((indexArg == null) ? null : indexArg.longValue()), pathArg, passwordArg, encTypeArg, encNameArg, encSuffixArg, enableArg);
                   wrapped.add(0, null);
                 } catch (Throwable exception) {
                   ArrayList<Object> wrappedError = wrapError(exception);
@@ -1206,9 +1211,9 @@ public class GeneratedApi {
               (message, reply) -> {
                 ArrayList<Object> wrapped = new ArrayList<Object>();
                 ArrayList<Object> args = (ArrayList<Object>) message;
-                Long indexArg = (Long) args.get(0);
+                Number indexArg = (Number) args.get(0);
                 try {
-                  api.removeEncryptPath(indexArg);
+                  api.removeEncryptPath(((indexArg == null) ? null : indexArg.longValue()));
                   wrapped.add(0, null);
                 } catch (Throwable exception) {
                   ArrayList<Object> wrappedError = wrapError(exception);
@@ -1252,6 +1257,50 @@ public class GeneratedApi {
                 try {
                   String output = api.getEncryptConfigJson();
                   wrapped.add(0, output);
+                } catch (Throwable exception) {
+                  ArrayList<Object> wrappedError = wrapError(exception);
+                  wrapped = wrappedError;
+                }
+                reply.reply(wrapped);
+              });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(
+                binaryMessenger, "dev.flutter.pigeon.openlist_mobile.EncryptProxy.exportEncryptConfigRaw", getCodec());
+        if (api != null) {
+          channel.setMessageHandler(
+              (message, reply) -> {
+                ArrayList<Object> wrapped = new ArrayList<Object>();
+                try {
+                  String output = api.exportEncryptConfigRaw();
+                  wrapped.add(0, output);
+                } catch (Throwable exception) {
+                  ArrayList<Object> wrappedError = wrapError(exception);
+                  wrapped = wrappedError;
+                }
+                reply.reply(wrapped);
+              });
+        } else {
+          channel.setMessageHandler(null);
+        }
+      }
+      {
+        BasicMessageChannel<Object> channel =
+            new BasicMessageChannel<>(
+                binaryMessenger, "dev.flutter.pigeon.openlist_mobile.EncryptProxy.importEncryptConfigRaw", getCodec());
+        if (api != null) {
+          channel.setMessageHandler(
+              (message, reply) -> {
+                ArrayList<Object> wrapped = new ArrayList<Object>();
+                ArrayList<Object> args = (ArrayList<Object>) message;
+                String configJsonArg = (String) args.get(0);
+                try {
+                  api.importEncryptConfigRaw(configJsonArg);
+                  wrapped.add(0, null);
                 } catch (Throwable exception) {
                   ArrayList<Object> wrappedError = wrapError(exception);
                   wrapped = wrappedError;

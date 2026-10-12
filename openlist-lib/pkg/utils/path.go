@@ -111,14 +111,14 @@ func GetPathHierarchy(path string) []string {
 
 	hierarchy := []string{"/"}
 
-	parts := strings.SplitSeq(path, "/")
-	var currentPath strings.Builder
-	for part := range parts {
+	parts := strings.Split(path, "/")
+	currentPath := ""
+	for _, part := range parts {
 		if part == "" {
 			continue
 		}
-		currentPath.WriteString("/" + part)
-		hierarchy = append(hierarchy, currentPath.String())
+		currentPath += "/" + part
+		hierarchy = append(hierarchy, currentPath)
 	}
 
 	return hierarchy

@@ -109,12 +109,19 @@ android {
         }
     }
 
+    packagingOptions {
+        // 本机腾讯电脑管家会锁 libgojni.so 导致 llvm-strip 报 Permission denied，跳过符号剥离
+        doNotStrip "**/*.so"
+    }
+
     splits {
         abi {
-            enable true  // 改为始终启用,而不是根据任务名判断
+            // 单 ABI(arm64)构建：关闭 splits，配合 flutter --target-platform android-arm64
+            // 直接产出 app-release.apk(仅 arm64)，避免 --target-platform 与 splits 启用的产物路径冲突
+            enable false
             reset()
             include 'armeabi-v7a', 'arm64-v8a', 'x86_64'
-            universalApk false  // 改为false避免生成通用APK
+            universalApk false
         }
     }
 
@@ -126,7 +133,11 @@ android {
         release {
             // 使用 debug 签名以便在没有密钥的情况下也能生成可安装的 Release 包
             signingConfig signingConfigs.debug
-            
+
+            // R8 会误删 configureFlutterEngine 等嵌入生命周期 override，导致 Pigeon 通道不注册。
+            // 显式声明 proguard 规则保住通道注册相关类（见 proguard-rules.pro）。
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+
             if (pro["KEY_PATH"] != null && pro["KEY_PASSWORD"] != null &&
                 pro["ALIAS_NAME"] != null && pro["ALIAS_PASSWORD"] != null) {
                 signingConfig signingConfigs.release

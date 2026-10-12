@@ -117,7 +117,7 @@ func (d *LanZou) Link(ctx context.Context, file model.Obj, args model.LinkArgs) 
 	return &model.Link{
 		URL: dfile.Url,
 		Header: http.Header{
-			"User-Agent": {d.UserAgent},
+			"User-Agent": []string{base.UserAgent},
 		},
 		Expiration: &exp,
 	}, nil

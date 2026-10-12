@@ -36,6 +36,8 @@
   "grantNotificationPermissionDesc": "Used for foreground service keep alive",
   "autoStartWebPage": "Set web page as startup page",
   "autoStartWebPageDesc": "Default page when opening main interface",
+  "encryptPageAsHome": "Set encrypted page as startup page",
+  "encryptPageAsHomeDesc": "On: 5344, Off: 5244",
   "dataDirectory": "data Directory",
   "setDefaultDirectory": "Set as default directory?",
   "silentJumpApp": "Silent jump app",

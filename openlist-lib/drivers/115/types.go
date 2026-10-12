@@ -22,10 +22,6 @@ func (f *FileObj) GetHash() utils.HashInfo {
 	return utils.NewHashInfo(utils.SHA1, f.Sha1)
 }
 
-func (f *FileObj) Thumb() string {
-	return f.ThumbURL
-}
-
 type UploadResult struct {
 	driver.BasicResp
 	Data struct {
