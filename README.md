@@ -183,6 +183,7 @@ flutter build apk
 - [OpenList](https://github.com/OpenListTeam/OpenList) - OpenList 主项目
 - [OpenList-Mobile](https://github.com/OpenListTeam/OpenList-Mobile) - OpenList 移动端
 - [alist-encrypt](https://github.com/traceless/alist-encrypt) - Alist 加密代理
+- [OpenList-Encrypt](https://github.com/qingwo1991-debug/OpenList-Encrypt) 原项目地址
 
 ## 许可证
 
@@ -190,42 +191,35 @@ flutter build apk
 
 ## 更新日志
 
-### 2025-02-04
-- **性能优化**: Gradle 构建性能优化
-  - 启用并行构建 (`org.gradle.parallel=true`)
-  - 启用构建缓存 (`org.gradle.caching=true`)
-  - 启用配置缓存 (`org.gradle.configuration-cache=true`)
-  - 优化 JVM 内存配置
-- **性能优化**: Flutter UI 性能优化
-  - 日志列表添加 `cacheExtent` 和 `itemExtent`，提升滚动流畅度
-  - 使用普通 `Text` 替代 `SelectableText`，减少渲染开销
-- **修复**: Android 内存泄漏修复
-  - 修复 `MainActivity` 中 Logger 监听器未注销导致的内存泄漏
-  - 移除 `ToastUtils` 中的 `GlobalScope`，改用 `Handler`
-  - 使用 `lifecycleScope` 替代 `GlobalScope`，确保协程生命周期安全
-- **修复**: Go 核心库稳定性优化
-  - 移除 `drivers/139/util.go` 中的 `panic`，改为安全返回零值
-  - 移除 `pkg/utils/io.go` 中的 `panic("Not reusable")`，改为日志警告
+### 2026-10-12
 
-### 2025-01-25
-- **修复**: 将默认数据目录从外部存储 (`getExternalFilesDir`) 改为内部存储 (`getFilesDir`)，确保应用卸载时加密配置等数据会被自动清除
-  - 之前：某些厂商 ROM（如 MIUI、EMUI）在卸载应用时不会清除外部存储中的数据
-  - 现在：使用内部存储路径，卸载时数据始终会被清除
-- **修复**: WebDAV 和下载请求在非 2xx 响应时跳过解密
-  - 当后端返回错误响应（如 4xx、5xx）时，不再尝试解密错误内容
-  - 解决联通云盘等某些存储返回错误时导致播放失败的问题
-- **优化**: 对齐 alist-encrypt 的加密逻辑
-  - 上传文件时自动加密文件名
-  - WebDAV PUT 操作支持文件缓存
-  - Content-Disposition 响应头中的文件名自动解密
+- **优化**: alist-encrypt 大文件上传问题
+- **修复**: alist-encrypt 视频及图片等某些模式下不走加密代理的问题
+- **添加**: alist-encrypt 添加备份配置恢复配置功能
+- **添加**: 设置添加5344页面开关，开关开启访问页面为alist-encrypt页面 
+
+
 
 ## 致谢
 
-- **阿里巴巴公司** — 提供强大的技术支持和基础设施
-- **千问团队 (Qwen / Tongyi)** — 本项目大量代码由 Qwen Code 协助完成
 - OpenList 团队
 - alist-encrypt 作者
 - Google Gemini & Google
 - OpenList-Mobile 作者团队
 - [Antigravity](https://github.com/Start-sys/Antigravity-Manager) & [Antigravity-Manager](https://github.com/lbjlaq/Antigravity-Manager)
+- [OpenList-Encrypt](https://github.com/qingwo1991-debug/OpenList-Encrypt) 原项目地址qingwo1991-debug/OpenList-Encrypt
 - 所有贡献者
+
+
+## ☕ 为爱发电
+
+❤️ 本版未设置任何付款付费方式，下方二维码自愿打赏，为爱发电，感谢支持！
+
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/fbc274d3-4fc5-4690-a166-17ec904f2c4d" width="280" alt="打赏二维码1"/></td>
+    <td><img src="https://github.com/user-attachments/assets/29e61fe1-6352-4562-8a9c-13c6b8e4592b" width="280" alt="打赏二维码2"/></td>
+  </tr>
+</table>
+
+  
